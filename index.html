@@ -1,0 +1,1442 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+    <title>fastQC</title>
+    <style>
+        table {
+            margin-left: 3em;
+            text-align: center;
+        }
+        th {
+            text-align: center;
+            background-color: #000080;
+            color: #FFFFFF;
+            padding: 0.4em;
+        }
+        td {
+            font-family: monospace;
+            text-align: left;
+            background-color: #EEEEEE;
+            color: #000000;
+            padding: 0.4em;
+        }
+        .axis text, .yaxis text {
+            font: 10px sans-serif;
+        }
+        .axis path, .axis line, .yaxis path {
+            fill: none;
+            stroke: #000;
+            shape-rendering: crispEdges;
+        }
+        .pointerImage, .lineMouseover{
+            cursor: pointer;
+        }
+        .y-axis-title {
+            font-family: "Lucida Console", Courier, monospace;
+            font-size: small;
+        }
+        .x-axis-title {
+            font-family: "Lucida Console", Courier, monospace;
+            font-size: small;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js" charset="utf-8"></script>
+    <script src="singlefile.js"></script>
+</head>
+
+<body>
+
+<hr />
+File Input:
+<input type="file" id="qcFile" name="qcFile[]" onchange="readFile(this.files)" multiple="multiple">
+Choose file:
+<select id="slct" name = "slct" onchange="fileSelect(this.value)"> </select>
+<hr />
+
+<div id="left" style="float:left; width:50%;">
+    <h2 id="one"></h2>
+    <div id="container1"> </div>
+    <h2 id="two"></h2>
+    <div id="container2"></div>
+    <h2 id="three"></h2>
+    <div id="container3"></div>
+    <h2 id="four"></h2>
+    <div id="container4"></div>
+    <h2 id="five"></h2>
+    <div id="container5"></div>
+    <h2 id="six"></h2>
+    <div id="container6"></div>
+    <h2 id="seven"></h2>
+    <div id="container7"></div>
+    <h2 id="eight"></h2>
+    <div id="container8"></div>
+    <h2 id="nine"></h2>
+    <div id="container9"></div>
+    <h2 id="ten"></h2>
+    <div id="container10"></div>
+    <h2 id="eleven"></h2>
+    <div id="container11"></div>
+    <h2 id="twelve"></h2>
+    <div id="container12"></div>
+</div>
+<div id="right" style="float:right; width:50%;">
+    <h2 id="thirteen"></h2>
+    <div id="container13"></div>
+    <h2 id="fourteen"></h2>
+    <div id="container14"></div>
+    <h2 id="fifteen"></h2>
+    <div id="container15"></div>
+    <h2 id="sixteen"></h2>
+    <div id="container16"></div>
+    <h2 id="seventeen"></h2>
+    <div id="container17"></div>
+    <h2 id="eightteen"></h2>
+    <div id="container18"></div>
+    <h2 id="nineteen"></h2>
+    <div id="container19"></div>
+    <h2 id="twenty"></h2>
+    <div id="container20"></div>
+    <h2 id="twentyone"></h2>
+    <div id="container21"></div>
+    <h2 id="twentytwo"></h2>
+    <div id="container22"></div>
+
+</div>
+<script>
+    //All Single File data structures
+    var fileNames = [], singleFileContent = [], PWF = [];
+    var fileCounter = 0, newFile = 0;
+    var fileNameArray = document.getElementById("slct");
+    var colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd",
+        "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"];
+    //All concatenated file data structures
+    var allBasicStatistics = [],
+            allPerBaseSequenceQuality = [],
+            allPerTileSequenceQuality = [],
+            allPerSequenceQualityScores = [],
+            allPerBaseSequenceContent = [],
+            allPerSequenceGCcontent = [],
+            allPerBaseNcontent = {data: [], status: []},
+            allSequenceLengthDistribution = [],
+            allSequenceDuplicationLevels = [],
+            allOverrepresentedSequences = [],
+            allAdapterContent = {data: [], filenames: []},
+            allKmerContent = [];
+    var singleFileImages = {
+        pass: "http://cliparts.co/cliparts/8ix/noy/8ixnoyj8T.png",
+        fail: "http://www.clker.com/cliparts/a/T/A/y/b/C/x-mark-hi.png",
+        warn: "https://pixabay.com/static/uploads/photo/2014/04/03/00/29/exclamation-mark-308416_960_720.png",
+        unknown: "http://www.landsbygdsnatverket.se/images/18.765a35dc13f7d0bf7c424b7/1372688013775/Fr%C3%A5getecken.png"
+    };
+    function readFile(files) {
+//                var len = Math.ceil(files.length / 100);
+//                var last = 0;
+//                for (var j = 0; j < len; j++) {
+//                    if (j === len - 1) {
+//                        last = files.length % 100;
+//                    }
+//                    var f = grab(files, j, last);
+        for (var i = 0; i < files.length; i++) {
+            (function (file) {
+                var reader = new FileReader();
+                reader.onload = function (e) {
+                    var text = e.target.result;
+                    whenLoaded(text);
+                };
+                reader.readAsText(file, "UTF-8");
+            })(files[i]);
+        }
+//                }
+    }
+    //            function grab(files, j, last) {
+    //                var newfiles = {};
+    //                var start = j * 100;
+    //                if (last !== 0) {
+    //                    var end = start + last;
+    //                }
+    //                else {
+    //                    var end = start + 100;
+    //                }
+    //                for (var i = start; i < end; i++) {
+    //                    newfiles[i] = files[i];
+    //                }
+    //                newfiles.start = start;
+    //                newfiles.end = end;
+    //                return newfiles;
+    //            }
+    function whenLoaded(text) {
+        if (newFile === 0) {
+            console.time('#test');
+        }
+        if (fileCounter === 0) {
+            allPerBaseNcontentStatus = [];
+        }
+        var fileArray = text.split("\n");
+        var name = fileArray[3].replace("Filename", "").trim();
+        newFile = newFile + 1;
+        if (fileNames.indexOf(name) === -1) {
+            var modules = qcCreateDictionary(fileArray);
+            PWF[fileCounter] = modules[1];
+            modules = modules[0];
+            fileNames[fileCounter] = name;
+            singleFileContent[fileCounter] = modules;
+            allBasicStatistics = allBasicStatistics.concat(modules["BasicStatistics"]);
+            allPerBaseSequenceQuality = allPerBaseSequenceQuality.concat(modules["Perbasesequencequality"].slice(2));
+//                    allPerTileSequenceQuality = allPerTileSequenceQuality.concat(modules["Pertilesequencequality"]);
+            allPerSequenceQualityScores = allPerSequenceQualityScores.concat(modules["Persequencequalityscores"]);
+//                    allPerBaseSequenceContent = allPerBaseSequenceContent.concat(modules["Perbasesequencecontent"]);
+//                    allPerSequenceGCcontent = allPerSequenceGCcontent.concat(modules["PersequenceGCcontent"]);
+            if (modules["PerbaseNcontent"][0] !== "pass") {
+                allPerBaseNcontent.data = allPerBaseNcontent["data"]
+                        .concat(modules["PerbaseNcontent"]
+                                .slice(2).join(",")
+                                .replace(/\s+/g, " ")
+                                .split(","));
+                allPerBaseNcontent.status = allPerBaseNcontent["status"].concat(modules["PerbaseNcontent"][0]);
+            }
+//                    allSequenceLengthDistribution = allSequenceLengthDistribution.concat(modules["SequenceLengthDistribution"]);
+            if (modules["SequenceDuplicationLevels"][0] === "warn" || modules["SequenceDuplicationLevels"][0] === "fail") {
+                allSequenceDuplicationLevels.push({
+                    percent: Math.round(modules.SequenceDuplicationLevels[3].replace(/\s+/g, " ").split(" ")[1]),
+                    status: modules.SequenceDuplicationLevels[0]
+                });
+            }
+//                    allOverrepresentedSequences = allOverrepresentedSequences.concat(modules["Overrepresentedsequences"]);
+            if (modules.AdapterContent !== undefined) {
+                var adapterContent = modules["AdapterContent"][1].split("\t").slice(1);
+                allAdapterContent.data = allAdapterContent.data.concat(adapterContent);
+                allAdapterContent.filenames = allAdapterContent.filenames
+                        .concat(Array(adapterContent.length+1).join(name+" ")
+                                .split(" ").splice(0,adapterContent.length));
+            }
+            else {
+                allAdapterContent.data = allAdapterContent.data.concat(["None"]);
+                allAdapterContent.filenames.push(name);
+            }
+//                    allKmerContent = allKmerContent.concat(modules["KmerContent"]);
+            //Populate file list
+            var newOption = document.createElement("option");
+            newOption.value = fileNames[fileCounter];
+            newOption.innerHTML = fileNames[fileCounter];
+            fileNameArray.add(newOption);
+            fileCounter = fileCounter + 1;
+            if (newFile === qcFile.files.length) {
+                newFile = 0;
+                var merged = [].concat.apply([], PWF).sort();
+
+                console.log(allSequenceDuplicationLevels);
+
+                fileSelect(fileNameArray.value);
+                aggregateStatus(merged);
+                var allBasicStatsData = basicStatsData(allBasicStatistics, fileNames);
+                allBasicStatisticsFunctions(allBasicStatsData);
+                allPerBaseSeqQualFunc(allPerBaseSequenceQuality.join(",").replace(/\s+/g, " "), fileNames);
+                stringData(allAdapterContent.data, allAdapterContent.filenames, "nineteen", "Adapters",
+                        "#container19", "Summary of Adapters Used", " ", "rotate(-50)",
+                        "end", 650);
+//                        console.log(allPerBaseSequenceQuality);
+//                        console.log(allPerTileSequenceQuality);
+                allPerSequenceQualityScoreFunctions(allPerSequenceQualityScores);
+//                        console.log(allPerSequenceQualityScores);
+//                        console.log(allPerBaseSequenceContent);
+//                        console.log(allPerSequenceGCcontent);
+                allPerBaseNcontentFunc(allPerBaseNcontent);
+//                        console.log(allPerBaseNcontent);
+//                        console.log(allSequenceLengthDistribution);
+//                        console.log(allSequenceDuplicationLevels);
+//                        console.log(allOverrepresentedSequences);
+//                        console.log(allAdapterContent);
+//                        console.log(allKmerContent);
+                console.timeEnd('#test');
+            }
+        }
+    }
+    function allPerBaseNcontentFunc(data) {
+        document.getElementById("twentytwo").innerHTML = "Per base N content failures and warnings";
+        var dataObj = {warn: new Array(), fail: new Array()};
+        var j = 0, bases = [], warnClick = "on", failClick = "on";
+        for (var i = 0; i < data.data.length; i++) {
+            var d = data.data[i].split(" ");
+            if (i !== 0 && d[0] === "1") {
+                j++;
+            }
+            dataObj[data.status[j]].push({
+                base: d[0],
+                percent: d[1],
+                filenumber: j
+            });
+            bases[i] = d[0];
+        }
+        bases = bases.unique().sort(customSort);
+        var failDataNest = d3.nest()
+                .key(function (d) {
+                    return d.filenumber;
+                })
+                .entries(dataObj.fail);
+        var warnDataNest = d3.nest()
+                .key(function (d) {
+                    return d.filenumber;
+                })
+                .entries(dataObj.warn);
+        d3.select("#container22").select("svg").remove();
+        var vis = d3.select("#container22").append("svg")
+                .attr("width", 650)
+                .attr("height", 550);
+        var warnVis = vis.append("g").attr("id", "warnVis");
+        var failVis = vis.append("g").attr("id", "failVis");
+        var yScale = d3.scale.linear().range([40, 500]).domain([100, 0]),
+                xScale = d3.scale.ordinal().rangePoints([40, 500]).domain(bases);
+        var xAxis = d3.svg.axis().scale(xScale);
+        var yAxis = d3.svg.axis().scale(yScale).orient("left");
+        var lineGen = d3.svg.line()
+                .x(function (d) {
+                    return xScale(d.base);
+                })
+                .y(function (d) {
+                    return yScale(d.percent);
+                });
+        failDataNest.forEach(function (d) {
+            vis.append("path")
+                    .attr("transform", "translate(0," + 0 + ")")
+                    .attr("fill", "none")
+                    .attr("id", "fails")
+                    .attr("stroke", "#ff0505")
+                    .attr("stroke-width", 0.5)
+                    .attr("d", lineGen(d.values));
+        });
+        warnDataNest.forEach(function (d) {
+            warnVis.append("path")
+                    .attr("transform", "translate(0," + 0 + ")")
+                    .attr("id", "warnings")
+                    .attr("fill", "none")
+                    .attr("stroke", "#ffc40c")
+                    .attr("stroke-width", 0.5)
+                    .attr("d", lineGen(d.values));
+        });
+        var warnImg = vis.append("svg:image")
+                .attr("xlink:href", singleFileImages.warn)
+                .attr("class", "pointerImage")
+                .attr("width", 20)
+                .attr("height", 20)
+                .attr("x", 520)
+                .attr("y", 40)
+                .on("click", function () {
+                    if (warnClick === "on") {
+                        d3.select(this).attr("opacity", 0.35);
+                        vis.select("#warnText").text("off");
+                        warnClick = "off";
+                        d3.selectAll("#warnings").remove();
+                        return;
+                    }
+                    if (warnClick === "off") {
+                        d3.select(this).attr("opacity", 1);
+                        vis.select("#warnText").text("on");
+                        if (failClick === "off") {
+                            yScale.domain([20, 0]);
+                            vis.select(".yaxis").call(yAxis);
+                        }
+                        warnDataNest.forEach(function (d) {
+                            warnVis.append("path")
+                                    .attr("transform", "translate(0," + 0 + ")")
+                                    .attr("id", "warnings")
+                                    .attr("fill", "none")
+                                    .attr("stroke", "#ffc40c")
+                                    .attr("stroke-width", 0.5)
+                                    .attr("d", lineGen(d.values));
+                        });
+                        warnClick = "on";
+                        return;
+                    }
+                });
+        var failImg = vis.append("svg:image")
+                .attr("xlink:href", singleFileImages.fail)
+                .attr("class", "pointerImage")
+                .attr("width", 20)
+                .attr("height", 20)
+                .attr("x", 520)
+                .attr("y", 65)
+                .on("click", function () {
+                    if (failClick === "on") {
+                        d3.select(this).attr("opacity", 0.35);
+                        vis.select("#failText").text("off");
+                        failClick = "off";
+                        d3.selectAll("#fails").remove();
+                        if (warnClick === "on") {
+                            yScale.domain([20, 0]);
+                            d3.selectAll("#warnings").remove();
+                            vis.select(".yaxis").call(yAxis);
+                            warnDataNest.forEach(function (d) {
+                                warnVis.append("path")
+                                        .attr("transform", "translate(0," + 0 + ")")
+                                        .attr("id", "warnings")
+                                        .attr("fill", "none")
+                                        .attr("stroke", "#ffc40c")
+                                        .attr("stroke-width", 0.5)
+                                        .attr("d", lineGen(d.values));
+                            });
+                        }
+                        return;
+                    }
+                    if (failClick === "off") {
+                        d3.select(this).attr("opacity", 1);
+                        vis.select("#failText").text("on");
+                        yScale.domain([100, 0]);
+                        vis.select(".yaxis").call(yAxis);
+                        if (warnClick === "on") {
+                            d3.selectAll("#warnings").remove();
+                            warnDataNest.forEach(function (d) {
+                                warnVis.append("path")
+                                        .attr("transform", "translate(0," + 0 + ")")
+                                        .attr("id", "warnings")
+                                        .attr("fill", "none")
+                                        .attr("stroke", "#ffc40c")
+                                        .attr("stroke-width", 0.5)
+                                        .attr("d", lineGen(d.values));
+                            });
+                        }
+                        failDataNest.forEach(function (d) {
+                            failVis.append("path")
+                                    .attr("transform", "translate(0," + 0 + ")")
+                                    .attr("id", "fails")
+                                    .attr("fill", "none")
+                                    .attr("stroke", "#ff0505")
+                                    .attr("stroke-width", 0.5)
+                                    .attr("d", lineGen(d.values));
+                        });
+                        failClick = "on";
+                        return;
+                    }
+                });
+        vis.append("text")
+                .attr("x", 270)
+                .attr("y", 20)
+                .attr("class", "x-axis-title")
+                .style("text-anchor", "middle")
+                .text("Per base N content across all bases for failures and warnings");
+        vis.append("text")
+                .attr("x", 270)
+                .attr("y", 540)
+                .attr("class", "x-axis-title")
+                .style("text-anchor", "middle")
+                .text("Position in read (bp)");
+        vis.append("text")
+                .style("text-anchor", "middle")
+                .attr("transform", "translate(10,270) rotate(-90)")
+                .attr("class", "y-axis-title")
+                .text("Percentage (%)");
+        vis.append("text")
+                .attr("x", 550)
+                .attr("y", 52)
+                .attr("id", "warnText")
+                .style("text-anchor", "middle")
+                .attr("font-family", "sans-serif")
+                .attr("font-size", "11px")
+                .attr("font-weight", "bold")
+                .text("on");
+        vis.append("text")
+                .attr("x", 550)
+                .attr("y", 77)                      //+12
+                .attr("id", "failText")
+                .style("text-anchor", "middle")
+                .attr("font-family", "sans-serif")
+                .attr("font-size", "11px")
+                .attr("font-weight", "bold")
+                .text("on");
+        vis.append("svg:g")
+                .attr("class", "axis")
+                .attr("transform", "translate(0," + 500 + ")")
+                .call(xAxis);
+        vis.append("svg:g")
+                .attr("class", "yaxis")
+                .attr("transform", "translate(" + 4 + "0)")
+                .call(yAxis);
+    }
+    function allPerBaseSeqQualFunc(data, names) {
+        document.getElementById("twenty").innerHTML = "Per base sequence quality means";
+        document.getElementById("twentyone").innerHTML = "Per base sequence quality medians";
+        data = data.split(",");
+        var dataArray = [], base = [];
+        var j = 0;
+        for (var i = 0; i < data.length; i++) {
+            base[i] = data[i].split(" ")[0].split("-").pop();
+            if (base[i] === "1" && i !== 0) {
+                j++;
+            }
+            dataArray[i] = {
+                x: base[i],
+                mean: data[i].split(" ")[1],
+                median: data[i].split(" ")[2],
+                filename: names[j]
+            };
+        }
+        base = base.unique().sort(customSort);
+        var dataNest = d3.nest()
+                .key(function (d) {
+                    return d.filename;
+                })
+                .entries(dataArray);
+        d3.select("#container20").select("svg").remove();
+        d3.select("#container21").select("svg").remove();
+        var meanVis = d3.select("#container20").append("svg")
+                .attr("width", 650)
+                .attr("height", 550);
+        var medianVis = d3.select("#container21").append("svg")
+                .attr("width", 650)
+                .attr("height", 550);
+        var mean_yMax = Math.max.apply(Math, dataArray.map(function (dataArray) {
+            return dataArray.mean;
+        }));
+        var median_yMax = Math.max.apply(Math, dataArray.map(function (dataArray) {
+            return dataArray.median;
+        }));
+        var xScale = d3.scale.ordinal().rangePoints([40, 500]).domain(base);
+        var mean_yScale = d3.scale.linear().range([40, 500]).domain([mean_yMax, 0]);
+        var median_yScale = d3.scale.linear().range([40, 500]).domain([median_yMax, 0]);
+        var xAxis = d3.svg.axis().scale(xScale);
+        var mean_yAxis = d3.svg.axis().scale(mean_yScale).orient("left");
+        var median_yAxis = d3.svg.axis().scale(median_yScale).orient("left");
+        var mean_lineGen = d3.svg.line()
+                .x(function (d) {
+                    return xScale(d.x);
+                })
+                .y(function (d) {
+                    return mean_yScale(d.mean);
+                });
+        var median_lineGen = d3.svg.line()
+                .x(function (d) {
+                    return xScale(d.x);
+                })
+                .y(function (d) {
+                    return median_yScale(d.median);
+                });
+        dataNest.forEach(function (d) {
+            meanVis.append("path")
+                    .attr("transform", "translate(100," + 0 + ")")
+                    .attr("fill", "none")
+                    .attr("stroke", "blue")
+                    .attr("stroke-width", 0.5)
+                    .attr("d", mean_lineGen(d.values));
+        });
+        dataNest.forEach(function (d) {
+            medianVis.append("path")
+                    .attr("transform", "translate(100," + 0 + ")")
+                    .attr("fill", "none")
+                    .attr("stroke", "red")
+                    .attr("stroke-width", 0.5)
+                    .attr("d", median_lineGen(d.values));
+        });
+        meanVis.append("text")
+                .attr("x", 370)
+                .attr("y", 540)
+                .attr("class", "x-axis-title")
+                .style("text-anchor", "middle")
+                .text("Position in read (bp)");
+        meanVis.append("text")
+                .attr("x", 375)
+                .attr("y", 20)
+                .attr("class", "x-axis-title")
+                .style("text-anchor", "middle")
+                .text("Distribution of per base sequence quality means");
+        meanVis.append("text")
+                .style("text-anchor", "middle")
+                .attr("transform", "translate(60,270) rotate(-90)")
+                .attr("class", "y-axis-title")
+                .text("Quality");
+        medianVis.append("text")
+                .attr("x", 370)
+                .attr("y", 540)
+                .attr("class", "x-axis-title")
+                .style("text-anchor", "middle")
+                .text("Position in read (bp)");
+        medianVis.append("text")
+                .attr("x", 375)
+                .attr("y", 20)
+                .attr("class", "x-axis-title")
+                .style("text-anchor", "middle")
+                .text("Distribution of per base sequence quality medians");
+        medianVis.append("text")
+                .style("text-anchor", "middle")
+                .attr("transform", "translate(60,270) rotate(-90)")
+                .attr("class", "y-axis-title")
+                .text("Quality");
+        meanVis.append("svg:g")
+                .attr("class", "axis")
+                .attr("transform", "translate(100," + 500 + ")")
+                .call(xAxis);
+        medianVis.append("svg:g")
+                .attr("class", "axis")
+                .attr("transform", "translate(100," + 500 + ")")
+                .call(xAxis);
+        meanVis.append("svg:g")
+                .attr("class", "axis")
+                .attr("transform", "translate(" + 14 + "0)")
+                .call(mean_yAxis);
+        medianVis.append("svg:g")
+                .attr("class", "axis")
+                .attr("transform", "translate(" + 14 + "0)")
+                .call(median_yAxis);
+    }
+    function aggregateStatus(merged) {
+        document.getElementById("eightteen").innerHTML = "Module Status Summary";
+        var obj = {
+            'Adapter Content': new Array(),
+            'Basic Statistics': new Array(),
+            'Kmer Content': new Array(),
+            'Overrepresented sequences': new Array(),
+            'Per base GC content': new Array(),
+            'Per base N content': new Array(),
+            'Per base sequence content': new Array(),
+            'Per base sequence quality': new Array(),
+            'Per sequence GC content': new Array(),
+            'Per sequence quality scores': new Array(),
+            'Per tile sequence quality': new Array(),
+            'Sequence Duplication Levels': new Array(),
+            'Sequence Length Distribution': new Array()
+        };
+        for (var i = 0; i < merged.length; i++) {
+            obj[merged[i].slice(0, -5)].push(merged[i].slice(-4));
+        }
+        var keys = Object.keys(obj);
+        var len = keys.length;
+        var total = obj["Basic Statistics"].length;
+        var dataArray = [], hoverArray = [];
+        for (var i = 0; i < len; i++) {
+            var stats = obj[keys[i]];
+            var counts = {}, holder = [];
+            for (var j = 0; j < stats.length; j++) {
+                counts[stats[j]] = 1 + (counts[stats[j]] || 0);
+            }
+            if (counts.fail === undefined) {
+                counts.fail = 0;
+            }
+            if (counts.pass === undefined) {
+                counts.pass = 0;
+            }
+            if (counts.warn === undefined) {
+                counts.warn = 0;
+            }
+            counts.unknown = total - stats.length;
+            obj[keys[i]] = counts;
+            counts.passy = total;
+            counts.warny = total - counts.pass;
+            counts.faily = counts.warny - counts.warn;
+            counts.unknowny = counts.faily - counts.fail;
+            counts.x = keys[i];
+            holder[0] = {x: total - counts.passy,
+                color: "#1fee2d",
+                width: counts.pass,
+                y: keys[i]
+            };
+            holder[1] = {x: total - counts.warny,
+                color: "#ffc40c",
+                width: counts.warn,
+                y: keys[i]};
+            holder[2] = {x: total - counts.faily,
+                color: "#ff0505",
+                width: counts.fail,
+                y: keys[i]};
+            holder[3] = {x: total - counts.unknowny,
+                color: "#d3d3d3",
+                width: counts.unknown,
+                y: keys[i]};
+            hoverArray[i] = {x: 40, y: keys[i], width: 460, pass: counts.pass,
+                fail: counts.fail, warn: counts.warn, unknown: counts.unknown};
+            dataArray[i] = holder;
+        }
+        var merged = [].concat.apply([], dataArray);
+        keys.unshift("");
+        keys.push(" ");
+        d3.select("#container18").select("svg").remove();
+        var vis = d3.select("#container18").append("svg")
+                .attr("width", 800)
+                .attr("height", 550);
+        var xScale = d3.scale.linear().range([40, 500]).domain([0, total]);
+        var yScale = d3.scale.ordinal().rangePoints([40, 500]).domain(keys);
+        var xAxis = d3.svg.axis().scale(xScale);
+        var yAxis = d3.svg.axis().scale(yScale).orient("left");
+        var h = (460 / 14) * 0.8;
+        var rects = vis.append("g");
+        var images = vis.append("g");
+        var text = vis.append("g");
+        rects.selectAll("rects")
+                .data(merged)
+                .enter()
+                .append("rect")
+                .attr("y", function (d) {
+                    return yScale(d.y) - (h / 2);
+                })
+                .attr("x", function (d) {
+                    return xScale(d.x);
+                })
+                .attr("width", function (d) {
+                    return xScale(d.width) - 40;
+                })
+                .attr("height", h)
+                .attr("fill", function (d) {
+                    return d.color;
+                });
+        var hoverRect = rects.selectAll("hovers")
+                .data(hoverArray)
+                .enter()
+                .append("rect")
+                .attr("x", function (d) {
+                    return d.x;
+                })
+                .attr("y", function (d) {
+                    return yScale(d.y) - (h / 2);
+                })
+                .attr("width", function (d) {
+                    return d.width;
+                })
+                .attr("height", h)
+                .attr("fill", "white")
+                .attr("fill-opacity", 0.1)
+                .attr("stroke", "black")
+                .attr("stroke-width", 2)
+                .on("mouseover", function (d) {
+                    text.append("text")
+                            .attr("x", 650)
+                            .attr("y", 52)
+                            .attr("text-anchor", "start")
+                            .attr("font-family", "sans-serif")
+                            .attr("font-size", "11px")
+                            .attr("font-weight", "bold")
+                            .attr("fill", "black")
+                            .text(d.pass);
+                    text.append("text")
+                            .attr("x", 650)
+                            .attr("y", 77)
+                            .attr("text-anchor", "start")
+                            .attr("font-family", "sans-serif")
+                            .attr("font-size", "11px")
+                            .attr("font-weight", "bold")
+                            .attr("fill", "black")
+                            .text(d.warn);
+                    text.append("text")
+                            .attr("x", 650)
+                            .attr("y", 102)
+                            .attr("text-anchor", "start")
+                            .attr("font-family", "sans-serif")
+                            .attr("font-size", "11px")
+                            .attr("font-weight", "bold")
+                            .attr("fill", "black")
+                            .text(d.fail);
+                    text.append("text")
+                            .attr("x", 650)
+                            .attr("y", 127)
+                            .attr("text-anchor", "start")
+                            .attr("font-family", "sans-serif")
+                            .attr("font-size", "11px")
+                            .attr("font-weight", "bold")
+                            .attr("fill", "black")
+                            .text(d.unknown);
+                    d3.select(this)
+                            .attr("stroke", "blue")
+                            .attr("stroke-width", 3.5);
+                })
+                .on("mouseout", function (d) {
+                    text.selectAll("*").remove();
+                    d3.select(this)
+                            .attr("stroke", "black")
+                            .attr("stroke-width", 2);
+                });
+        var passImg = images.append("svg:image")
+                .attr("xlink:href", singleFileImages.pass)
+                .attr("width", 20)
+                .attr("height", 20)
+                .attr("x", 620)
+                .attr("y", 40);
+        var warnImg = images.append("svg:image")
+                .attr("xlink:href", singleFileImages.warn)
+                .attr("width", 20)
+                .attr("height", 20)
+                .attr("x", 620)
+                .attr("y", 65);
+        var failImg = images.append("svg:image")
+                .attr("xlink:href", singleFileImages.fail)
+                .attr("width", 20)
+                .attr("height", 20)
+                .attr("x", 620)
+                .attr("y", 90);
+        var unknownImg = images.append("svg:image")
+                .attr("xlink:href", singleFileImages.unknown)
+                .attr("width", 23)
+                .attr("height", 23)
+                .attr("x", 620)
+                .attr("y", 115);
+        vis.append("svg:g")
+                .attr("class", "axis")
+                .attr("transform", "translate(110, 500)")
+                .call(xAxis);
+        vis.append("svg:g")
+                .attr("class", "axis")
+                .attr("transform", "translate(150,0)")
+                .call(yAxis);
+        vis.append("text")
+                .style("text-anchor", "middle")
+                .attr("transform", "translate(10,270) rotate(-90)")
+                .attr("class", "y-axis-title")
+                .text("Modules");
+        vis.append("text")
+                .attr("x", 270)
+                .attr("y", 530)
+                .attr("class", "x-axis-title")
+                .attr("transform", "translate(110, 0)")
+                .style("text-anchor", "middle")
+                .text("# of Files");
+        vis.append("text")
+                .attr("x", 270)
+                .attr("y", 20)
+                .attr("class", "x-axis-title")
+                .style("text-anchor", "middle")
+                .text("Pass/Warn/Fail/Unknown per module");
+        vis.select("g").attr("transform", "translate(110,0)");
+    }
+    function allPerSequenceQualityScoreFunctions(data) {
+        document.getElementById("seventeen").innerHTML = "Distribution of per sequence quality scores";
+        var dataArray = [];
+        var splitText, file = 0;
+        for (var i = 0; i < data.length; i++) {
+            splitText = data[i].replace(/\s+/g, ' ').split(" ");
+            if (isNaN(splitText[0]) === false) {
+                dataArray.push({
+                    quality: splitText[0],
+                    count: splitText[1],
+                    filename: fileNames[file]
+                });
+            }
+            if (isNaN(splitText[0]) === true && i > 1) {
+                i = i + 2;
+                file++;
+            }
+        }
+        var dataNest = d3.nest()
+                .key(function (d) {
+                    return d.filename;
+                })
+                .entries(dataArray);
+        d3.select("#container17").select("svg").remove();
+        var vis = d3.select("#container17").append("svg")
+                .attr("width", 650)
+                .attr("height", 550);
+        var yMax = Math.max.apply(Math, dataArray.map(function (dataArray) {
+            return dataArray.count;
+        }));
+        var xMax = Math.max.apply(Math, dataArray.map(function (dataArray) {
+            return dataArray.quality;
+        }));
+        var xScale = d3.scale.linear().range([40, 500]).domain([0, (xMax + 1)]);
+        var yScale = d3.scale.linear().range([40, 500]).domain([yMax, 0]);
+        var xAxis = d3.svg.axis().scale(xScale);
+        var yAxis = d3.svg.axis().scale(yScale).orient("left");
+        var lineGen = d3.svg.line()
+                .x(function (d) {
+                    return xScale(d.quality);
+                })
+                .y(function (d) {
+                    return yScale(d.count);
+                });
+        dataNest.forEach(function (d) {
+            vis.append("path")
+                    .attr("transform", "translate(100," + 0 + ")")
+                    .attr("fill", "none")
+                    .attr("stroke", "grey")
+                    .attr("stroke-width", 1)
+                    .attr("d", lineGen(d.values));
+        });
+        vis.append("text")
+                .attr("x", 370)
+                .attr("y", 540)
+                .attr("class", "x-axis-title")
+                .style("text-anchor", "middle")
+                .text("Mean Sequence Quality (Phred Score)");
+        vis.append("text")
+                .attr("x", 375)
+                .attr("y", 20)
+                .attr("class", "x-axis-title")
+                .style("text-anchor", "middle")
+                .text("Quality score distribution over all sequences");
+        vis.append("text")
+                .style("text-anchor", "middle")
+                .attr("transform", "translate(60,270) rotate(-90)")
+                .attr("class", "y-axis-title")
+                .text("Count");
+        vis.append("svg:g")
+                .attr("class", "axis")
+                .attr("transform", "translate(100," + 500 + ")")
+                .call(xAxis);
+        vis.append("svg:g")
+                .attr("class", "axis")
+                .attr("transform", "translate(" + 14 + "0)")
+                .call(yAxis);
+    }
+    function basicStatsData(array, filenames) {
+        var obj = {
+            filetype: new Array(),
+            encoding: new Array(),
+            totalSequences: new Array(),
+            sequenceLength: new Array(),
+            GC: new Array()
+        };
+        for (var i = 0; i < array.length; i++) {
+            if (array[i].includes("File type") === true) {
+                obj.filetype.push(array[i].replace("File type", "").trim());
+            }
+            if (array[i].includes("Encoding") === true) {
+                obj.encoding.push(array[i].replace("Encoding", "").trim());
+            }
+            if (array[i].includes("Total Sequences") === true) {
+                obj.totalSequences.push(array[i].replace("Total Sequences", "").trim());
+            }
+            if (array[i].includes("Sequence length") === true) {
+                obj.sequenceLength.push(array[i].replace("Sequence length", "").trim());
+            }
+            if (array[i].includes("GC") === true) {
+                obj.GC.push(array[i].replace("%GC", "").trim());
+            }
+        }
+        obj.filenames = filenames;
+        return obj;
+    }
+    function allBasicStatisticsFunctions(data) {
+        stringData(data.filetype, data.filenames, "thirteen", "File types", "#container13",
+                "Distribution of file types", "File type", "rotate(0)", "middle", 550);
+        stringData(data.encoding, data.filenames, "fourteen", "Encoding types", "#container14",
+                "Distribution of encoding types", "Encoding type", "rotate(0)", "middle", 550);
+        totalsequences(data.totalSequences);
+        GCcontents(data.GC);
+    }
+    function GCcontents(data) {
+        document.getElementById("sixteen").innerHTML = "Distribution of GC content";
+        var categories = ["0", "1-5", "6-10", "11-15", "16-20", "21-25", "26-30", "31-35",
+            "36-40", "41-45", "46-50", "51-55", "56-60", "61-65", "66-70", "71-75", "76-80",
+            "81-85", "86-90", "91-95", "96-100", ""];
+        var GCdata = [];
+        for (var i = 0; i < data.length; i++) {
+            if (data[i] >= 1 && data[i] < 6) {
+                GCdata[i] = "1-5";
+            }
+            else if (data[i] >= 6 && data[i] < 11) {
+                GCdata[i] = "6-10";
+            }
+            else if (data[i] >= 11 && data[i] < 16) {
+                GCdata[i] = "11-15";
+            }
+            else if (data[i] >= 16 && data[i] < 21) {
+                GCdata[i] = "16-20";
+            }
+            else if (data[i] >= 21 && data[i] < 26) {
+                GCdata[i] = "21-25";
+            }
+            else if (data[i] >= 26 && data[i] < 31) {
+                GCdata[i] = "26-30";
+            }
+            else if (data[i] >= 31 && data[i] < 36) {
+                GCdata[i] = "31-35";
+            }
+            else if (data[i] >= 36 && data[i] < 41) {
+                GCdata[i] = "36-40";
+            }
+            else if (data[i] >= 41 && data[i] < 46) {
+                GCdata[i] = "41-45";
+            }
+            else if (data[i] >= 46 && data[i] < 51) {
+                GCdata[i] = "46-50";
+            }
+            else if (data[i] >= 51 && data[i] < 56) {
+                GCdata[i] = "51-55";
+            }
+            else if (data[i] >= 56 && data[i] < 61) {
+                GCdata[i] = "56-60";
+            }
+            else if (data[i] >= 61 && data[i] < 66) {
+                GCdata[i] = "61-65";
+            }
+            else if (data[i] >= 66 && data[i] < 71) {
+                GCdata[i] = "66-70";
+            }
+            else if (data[i] >= 71 && data[i] < 76) {
+                GCdata[i] = "71-75";
+            }
+            else if (data[i] >= 76 && data[i] < 81) {
+                GCdata[i] = "76-80";
+            }
+            else if (data[i] >= 81 && data[i] < 86) {
+                GCdata[i] = "81-85";
+            }
+            else if (data[i] >= 86 && data[i] < 91) {
+                GCdata[i] = "86-90";
+            }
+            else if (data[i] >= 91 && data[i] < 96) {
+                GCdata[i] = "91-95";
+            }
+            else if (data[i] >= 96 && data[i] < 101) {
+                GCdata[i] = "96-100";
+            }
+        }
+        var counts = {};
+        for (var i = 0; i < GCdata.length; i++) {
+            counts[GCdata[i]] = 1 + (counts[GCdata[i]] || 0);
+        }
+        var uniqueData = GCdata.unique();
+        GCdata = [];
+        for (var i = 0; i < uniqueData.length; i++) {
+            GCdata[i] = {
+                x: uniqueData[i],
+                y: counts[uniqueData[i]],
+                color: colors[0],
+                barwidth: (460 / uniqueData.length) * 0.6
+            };
+        }
+        uniqueData.unshift("");
+        uniqueData.push(" ");
+        var yMax = Math.max.apply(Math, GCdata.map(function (GCdata) {
+            return GCdata.y;
+        }));
+        var yScale = d3.scale.linear().range([40, 500]).domain([yMax, 0]);
+        var xScale = d3.scale.ordinal().rangePoints([40, 500]).domain(uniqueData);
+        var xAxis = d3.svg.axis().scale(xScale).outerTickSize(0);
+        var yAxis = d3.svg.axis().scale(yScale).orient("left");
+        d3.select("#container16").select("svg").remove();
+        var vis = d3.select("#container16").append("svg")
+                .attr("width", 650)
+                .attr("height", 550);
+        var rects = vis.append("g");
+        var count = vis.append("g");
+        rects.selectAll("rects")
+                .data(GCdata)
+                .enter()
+                .append("rect")
+                .attr("y", function (d) {
+                    return yScale(d.y);
+                })
+                .attr("x", function (d) {
+                    return xScale(d.x) - (d.barwidth / 2);
+                })
+                .attr("height", function (d) {
+                    return 500 - yScale(d.y);
+                })
+                .attr("width", function (d) {
+                    return d.barwidth;
+                })
+                .attr("fill", function (d) {
+                    return d.color;
+                });
+        count.selectAll("text")
+                .data(GCdata)
+                .enter()
+                .append("text")
+                .text(function (d) {
+                    return d.y;
+                })
+                .attr("x", function (d) {
+                    return xScale(d.x);
+                })
+                .attr("y", function (d) {
+                    return yScale(d.y) - 2;
+                })
+                .attr("font-family", "sans-serif")
+                .style("text-anchor", "middle")
+                .attr("font-size", "11px")
+                .attr("fill", "black");
+        vis.append("text")
+                .attr("x", 270)
+                .attr("y", 20)
+                .attr("class", "x-axis-title")
+                .style("text-anchor", "middle")
+                .text("GC content distribution");
+        vis.append("text")
+                .attr("x", 270)
+                .attr("y", 540)
+                .attr("class", "x-axis-title")
+                .style("text-anchor", "middle")
+                .text("%GC");
+        vis.append("svg:g")
+                .attr("class", "axis")
+                .attr("transform", "translate(0,500)")
+                .call(xAxis);
+        vis.append("svg:g")
+                .attr("class", "axis")
+                .attr("transform", "translate(40, 0)")
+                .call(yAxis);
+        vis.append("text")
+                .style("text-anchor", "middle")
+                .attr("transform", "translate(10,270) rotate(-90)")
+                .attr("class", "y-axis-title")
+                .text("Count");
+    }
+    function totalsequences(boxData) {
+        document.getElementById("fifteen").innerHTML = "Distribution of total sequences";
+//
+//                var boxData = [], holder;
+//                for (var i = 0; i < data.length; i++) {
+//                    holder = data[i].split("-");
+//                    boxData = boxData.concat(holder);
+//                }
+        boxData = boxData.sort(function (a, b) {
+            return a - b;
+        });
+        var yMax = (Math.max.apply(null, boxData) * 1.05);
+        var scaleLower = (Math.min.apply(null, boxData) * 0.95);
+        var yScale = d3.scale.linear().range([40, 500]).domain([yMax, scaleLower]);
+        var xScale = d3.scale.ordinal().rangePoints([40, 500]).domain([1]);
+        var xAxis = d3.svg.axis().scale(xScale).tickFormat(function (d) {
+            return '';
+        }).innerTickSize([0]);
+        var yAxis = d3.svg.axis().scale(yScale).orient("left");
+        d3.select("#container15").select("svg").remove();
+        var boxWidth = 460 / 4;
+        var vis = d3.select("#container15").append("svg")
+                .attr("width", 650)
+                .attr("height", 550);
+        var labelCanvas = vis.append("g");
+        var valueCanvas = vis.append("g");
+        var boxCanvas = vis.append("g");
+        labelCanvas.append("text").attr("id", "min");
+        labelCanvas.append("text").attr("id", "Q1");
+        labelCanvas.append("text").attr("id", "median");
+        labelCanvas.append("text").attr("id", "Q3");
+        labelCanvas.append("text").attr("id", "mean");
+        labelCanvas.append("text").attr("id", "max");
+        valueCanvas.append("text").attr("id", "minV");
+        valueCanvas.append("text").attr("id", "Q1V");
+        valueCanvas.append("text").attr("id", "medianV");
+        valueCanvas.append("text").attr("id", "Q3V");
+        valueCanvas.append("text").attr("id", "meanV");
+        valueCanvas.append("text").attr("id", "maxV");
+        boxCanvas.append("rect")
+                .attr("x", (xScale(1) - (boxWidth / 2)))
+                .attr("y", yScale(d3.quantile(boxData, 0.75)))
+                .attr("height", (yScale(d3.quantile(boxData, 0.25)) - yScale(d3.quantile(boxData, 0.75))))
+                .attr("width", boxWidth)
+                .attr("stroke", "black")
+                .attr("fill", "yellow");
+        var xPosition = (boxWidth / 2 + xScale(1) + 75);
+        var yPosition = yScale(Math.max.apply(null, boxData)) - 10;
+        labelCanvas.select("#Q1")
+                .attr("x", xPosition)
+                .attr("y", yPosition + 40)
+                .attr("text-anchor", "end")
+                .attr("font-family", "sans-serif")
+                .attr("font-size", "11px")
+                .attr("font-weight", "bold")
+                .attr("fill", "black")
+                .attr("transform", "translate(0,0)")
+                .html("Q1: ");
+        valueCanvas.select("#Q1V")
+                .attr("x", xPosition + 5)
+                .attr("y", yPosition + 40)
+                .attr("text-anchor", "start")
+                .attr("font-family", "sans-serif")
+                .attr("font-size", "11px")
+                .attr("font-weight", "bold")
+                .attr("fill", "black")
+                .attr("transform", "translate(0,0)")
+                .html(+d3.quantile(boxData, 0.25).toFixed(2));
+        labelCanvas.select("#median")
+                .attr("x", xPosition)
+                .attr("y", yPosition + 20)
+                .attr("text-anchor", "end")
+                .attr("font-family", "sans-serif")
+                .attr("font-size", "11px")
+                .attr("font-weight", "bold")
+                .attr("fill", "red")
+                .attr("transform", "translate(0,0)")
+                .html("median: ");
+        valueCanvas.select("#medianV")
+                .attr("x", xPosition + 5)
+                .attr("y", yPosition + 20)
+                .attr("text-anchor", "start")
+                .attr("font-family", "sans-serif")
+                .attr("font-size", "11px")
+                .attr("font-weight", "bold")
+                .attr("fill", "red")
+                .attr("transform", "translate(0,0)")
+                .html(+d3.quantile(boxData, 0.50).toFixed(2));
+        labelCanvas.select("#Q3")
+                .attr("x", xPosition)
+                .attr("y", yPosition + 10)
+                .attr("text-anchor", "end")
+                .attr("font-family", "sans-serif")
+                .attr("font-size", "11px")
+                .attr("font-weight", "bold")
+                .attr("fill", "black")
+                .attr("transform", "translate(0,0)")
+                .html("Q3: ");
+        valueCanvas.select("#Q3V")
+                .attr("x", xPosition + 5)
+                .attr("y", yPosition + 10)
+                .attr("text-anchor", "start")
+                .attr("font-family", "sans-serif")
+                .attr("font-size", "11px")
+                .attr("font-weight", "bold")
+                .attr("fill", "black")
+                .attr("transform", "translate(0,0)")
+                .html(+d3.quantile(boxData, 0.75).toFixed(2));
+        labelCanvas.select("#mean")
+                .attr("x", xPosition)
+                .attr("y", yPosition + 30)
+                .attr("text-anchor", "end")
+                .attr("font-family", "sans-serif")
+                .attr("font-size", "11px")
+                .attr("font-weight", "bold")
+                .attr("fill", "blue")
+                .attr("transform", "translate(0,0)")
+                .html("mean: ");
+        valueCanvas.select("#meanV")
+                .attr("x", xPosition + 5)
+                .attr("y", yPosition + 30)
+                .attr("text-anchor", "start")
+                .attr("font-family", "sans-serif")
+                .attr("font-size", "11px")
+                .attr("font-weight", "bold")
+                .attr("fill", "blue")
+                .attr("transform", "translate(0,0)")
+                .html(+d3.mean(boxData).toFixed(2));
+        labelCanvas.select("#min")
+                .attr("x", xPosition)
+                .attr("y", yPosition + 50)
+                .attr("text-anchor", "end")
+                .attr("font-family", "sans-serif")
+                .attr("font-size", "11px")
+                .attr("font-weight", "bold")
+                .attr("fill", "black")
+                .attr("transform", "translate(0,0)")
+                .html("min: ");
+        valueCanvas.select("#minV")
+                .attr("x", xPosition + 5)
+                .attr("y", yPosition + 50)
+                .attr("text-anchor", "start")
+                .attr("font-family", "sans-serif")
+                .attr("font-size", "11px")
+                .attr("font-weight", "bold")
+                .attr("fill", "black")
+                .attr("transform", "translate(0,0)")
+                .html(Math.min.apply(null, boxData));
+        labelCanvas.select("#max")
+                .attr("x", xPosition)
+                .attr("y", yPosition)
+                .attr("text-anchor", "end")
+                .attr("font-family", "sans-serif")
+                .attr("font-size", "11px")
+                .attr("font-weight", "bold")
+                .attr("fill", "black")
+                .attr("transform", "translate(0,0)")
+                .html("max: ");
+        valueCanvas.select("#maxV")
+                .attr("x", xPosition + 5)
+                .attr("y", yPosition)
+                .attr("text-anchor", "start")
+                .attr("font-family", "sans-serif")
+                .attr("font-size", "11px")
+                .attr("font-weight", "bold")
+                .attr("fill", "black")
+                .attr("transform", "translate(0,0)")
+                .html(Math.max.apply(null, boxData));
+        labelCanvas.attr("transform", "translate(70,0)");
+        valueCanvas.attr("transform", "translate(70,0)");
+        boxCanvas.append("line")
+                .attr("y1", yScale(d3.quantile(boxData, 0.25)))
+                .attr("y2", yScale(Math.min.apply(null, boxData)))
+                .attr("x1", xScale(1))
+                .attr("x2", xScale(1))
+                .attr("stroke", "black")
+                .attr("fill", "none");
+        boxCanvas.append("line")
+                .attr("y1", yScale(d3.quantile(boxData, 0.75)))
+                .attr("y2", yScale(Math.max.apply(null, boxData)))
+                .attr("x1", xScale(1))
+                .attr("x2", xScale(1))
+                .attr("stroke", "black")
+                .attr("fill", "none");
+        boxCanvas.append("line")
+                .attr("y1", yScale(Math.max.apply(null, boxData)))
+                .attr("y2", yScale(Math.max.apply(null, boxData)))
+                .attr("x1", (xScale(1) - (boxWidth / 2)))
+                .attr("x2", (xScale(1) + (boxWidth / 2)))
+                .attr("stroke", "black")
+                .attr("fill", "none");
+        boxCanvas.append("line")
+                .attr("y1", yScale(Math.min.apply(null, boxData)))
+                .attr("y2", yScale(Math.min.apply(null, boxData)))
+                .attr("x1", (xScale(1) - (boxWidth / 2)))
+                .attr("x2", (xScale(1) + (boxWidth / 2)))
+                .attr("stroke", "black")
+                .attr("fill", "none");
+        boxCanvas.append("line")
+                .attr("y1", yScale(d3.mean(boxData)))
+                .attr("y2", yScale(d3.mean(boxData)))
+                .attr("x1", (xScale(1) - (boxWidth / 2)))
+                .attr("x2", (xScale(1) + (boxWidth / 2)))
+                .attr("stroke", "blue")
+                .attr("stroke-width", 1.5)
+                .attr("fill", "none");
+        boxCanvas.append("line")
+                .attr("y1", yScale(d3.quantile(boxData, 0.5)))
+                .attr("y2", yScale(d3.quantile(boxData, 0.5)))
+                .attr("x1", (xScale(1) - (boxWidth / 2)))
+                .attr("x2", (xScale(1) + (boxWidth / 2)))
+                .attr("stroke", "red")
+                .attr("stroke-width", 1.5)
+                .attr("fill", "none");
+        boxCanvas.attr("transform", "translate(50,0)");
+        vis.append("svg:g")
+                .attr("class", "axis")
+                .attr("transform", "translate(50,500)")
+                .call(xAxis);
+        vis.append("svg:g")
+                .attr("class", "axis")
+                .attr("transform", "translate(90, 0)")
+                .call(yAxis);
+    }
+    function stringData(data, filenames, headerID, moduleName, divID, title,
+                        xLabel, rotate, xPos, svgHeight) {
+        document.getElementById(headerID).innerHTML = moduleName;
+
+        var uniqueData = data.unique();
+
+        var counts = {}, names = {}, barData = [];
+        for(var i = 0; i < uniqueData.length; i++){
+            names[uniqueData[i]] = new Array();
+        }
+        for (var i = 0; i < data.length; i++) {
+            counts[data[i]] = 1 + (counts[data[i]] || 0);
+            names[data[i]].push(filenames[i]);
+        }
+
+        for (var i = 0; i < uniqueData.length; i++) {
+            barData[i] = {
+                x: uniqueData[i],
+                y: counts[uniqueData[i]],
+                files: names[uniqueData[i]].unique(),
+                color: colors[i]
+            };
+        }
+        uniqueData.unshift("");
+        uniqueData.push(" ");
+        var yMax = Math.max.apply(Math, barData.map(function (barData) {
+            return barData.y;
+        }));
+        var yScale = d3.scale.linear().range([40, 500]).domain([yMax, 0]);
+        var xScale = d3.scale.ordinal().rangePoints([40, 500]).domain(uniqueData);
+        var xAxis = d3.svg.axis().scale(xScale);
+        var yAxis = d3.svg.axis().scale(yScale).orient("left");
+        d3.select(divID).select("svg").remove();
+        var vis = d3.select(divID).append("svg")
+                .attr("width", 650)
+                .attr("height", svgHeight);
+        var rects = vis.append("g");
+        var count = vis.append("g");
+        var barWidth = (460 / uniqueData.length) * 0.9;
+        rects.selectAll("rects")
+                .data(barData)
+                .enter()
+                .append("rect")
+                .attr("y", function (d) {
+                    return yScale(d.y);
+                })
+                .attr("x", function (d) {
+                    return xScale(d.x) - (barWidth / 2);
+                })
+                .attr("height", function (d) {
+                    return 500 - yScale(d.y);
+                })
+                .attr("width", barWidth)
+                .attr("fill", function (d) {
+                    return d.color;
+                })
+                .on("click",function(d){
+                    console.log(d.files);
+                });
+        count.selectAll("text")
+                .data(barData)
+                .enter()
+                .append("text")
+                .text(function (d) {
+                    return d.y;
+                })
+                .attr("x", function (d) {
+                    return xScale(d.x);
+                })
+                .attr("y", function (d) {
+                    return yScale(d.y) - 2;
+                })
+                .attr("font-family", "sans-serif")
+                .style("text-anchor", "middle")
+                .attr("font-size", "11px")
+                .attr("fill", "black");
+        rects.attr("transform", "translate(0,0)");
+        vis.append("text")
+                .attr("x", 270)
+                .attr("y", 20)
+                .attr("class", "x-axis-title")
+                .style("text-anchor", "middle")
+                .text(title);
+        vis.append("text")
+                .attr("x", 270)
+                .attr("y", 540)
+                .attr("class", "x-axis-title")
+                .style("text-anchor", "middle")
+                .text(xLabel);
+        vis.append("svg:g")
+                .attr("class", "axis")
+                .attr("transform", "translate(0,500)")
+                .call(xAxis)
+                .selectAll("text")
+                .attr("transform", rotate)
+                .style("text-anchor", xPos);
+        vis.append("svg:g")
+                .attr("class", "axis")
+                .attr("transform", "translate(40, 0)")
+                .call(yAxis);
+    }
+    function qcCreateDictionary(text) {
+        var qcData = text;
+        //        qcData = qcData.split("\n");
+        //Will hold the indexes of the first and last line of each fastQC test
+        var qcIndexArray = [];
+        //Names of each fastQC test
+        var testSection = [];
+        //The pass/fail/warn status of the modules
+        var status = [];
+        var allStatus = [];
+        //To keep track of whether we're at beginning or end a test
+        var tracker = 0;
+        for (var line = 0; line < qcData.length; line++) {
+            if (qcData[line].indexOf(">>") !== -1) {
+                if (tracker % 2 === 0) {
+                    // add -4 to remove good/bad/warn
+                    var name = (qcData[line].slice(2, (qcData[line].length)));
+                    var pwf = (name.slice(name.length - 4));
+                    status.push(pwf);
+                    name = name.slice(0, (name.length) - 4);
+                    allStatus.push(name.replace(/\s+/g, ' ') + pwf);
+                    testSection.push(name.replace(/\s+/g, ''));
+                }
+                tracker++;
+                qcIndexArray.push(line);
+            }
+        }
+        //Dictonary contianing each test and their values as arrays
+        var modules = {};
+        for (i = 0; i < qcIndexArray.length / 2; i++) {
+            if (i === 0) {
+                modules[testSection[0]] = qcData.slice(qcIndexArray[0] + 1, qcIndexArray[1]);
+                modules[testSection[0]].splice(0, 0, status[0]);
+            }
+            else {
+                modules[testSection[i]] = qcData.slice(qcIndexArray[i * 2] + 1, qcIndexArray[(i * 2) + 1]);
+                modules[testSection[i]].splice(0, 0, status[i]);
+            }
+        }
+        return [modules, allStatus];
+    }
+    var customSort = function (a, b) {
+        return (Number(a.match(/(\d+)/g)[0]) - Number((b.match(/(\d+)/g)[0])));
+    };
+</script>
+
+</body>
+
+</html>
