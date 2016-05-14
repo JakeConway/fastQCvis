@@ -29,6 +29,13 @@
             stroke: #000;
             shape-rendering: crispEdges;
         }
+        .aggregateRects {
+            opacity: 1;
+        }
+        .aggregateRects:hover {
+            opacity: 0.7;
+            cursor: pointer;
+        }
         .pointerImage, .lineMouseover{
             cursor: pointer;
         }
@@ -40,9 +47,15 @@
             font-family: "Lucida Console", Courier, monospace;
             font-size: small;
         }
+
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js" charset="utf-8"></script>
     <script src="singlefile.js"></script>
+
+    <script src="http://code.jquery.com/jquery-1.12.0.min.js"></script>
+
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.2/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.2/js/select2.min.js"></script>
 </head>
 
 <body>
@@ -52,6 +65,8 @@ File Input:
 <input type="file" id="qcFile" name="qcFile[]" onchange="readFile(this.files)" multiple="multiple">
 Choose file:
 <select id="slct" name = "slct" onchange="fileSelect(this.value)"> </select>
+Groups:
+<select id="selected-groups" class="selected-groups" name="selected-groups" multiple="multiple" style="width: 300px;"></select>
 <hr />
 
 <div id="left" style="float:left; width:50%;">
@@ -104,10 +119,34 @@ Choose file:
 
 </div>
 <script>
+
+    $(function(){
+        // turn the element to select2 select style
+        $('#selected-groups').select2();
+    });
+
     //All Single File data structures
-    var fileNames = [], singleFileContent = [], PWF = [];
-    var fileCounter = 0, newFile = 0;
+
+    //Names of each file
+    var fileNames = [];
+
+    //All content from the files
+    var singleFileContent = [];
+
+    //Pass/Fail/Warn status for each test in the file
+    var PWF = [];
+
+    //File index
+    var fileCounter = 0;
+
+    //Number of new files added to FastQC tool
+    var newFile = 0;
+
+    //Select2 group selections
+    var selectedGroups = document.getElementById("selected-groups");
+
     var fileNameArray = document.getElementById("slct");
+
     var colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd",
         "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"];
     //All concatenated file data structures
@@ -130,13 +169,7 @@ Choose file:
         unknown: "http://www.landsbygdsnatverket.se/images/18.765a35dc13f7d0bf7c424b7/1372688013775/Fr%C3%A5getecken.png"
     };
     function readFile(files) {
-//                var len = Math.ceil(files.length / 100);
-//                var last = 0;
-//                for (var j = 0; j < len; j++) {
-//                    if (j === len - 1) {
-//                        last = files.length % 100;
-//                    }
-//                    var f = grab(files, j, last);
+
         for (var i = 0; i < files.length; i++) {
             (function (file) {
                 var reader = new FileReader();
@@ -147,24 +180,9 @@ Choose file:
                 reader.readAsText(file, "UTF-8");
             })(files[i]);
         }
-//                }
+
     }
-    //            function grab(files, j, last) {
-    //                var newfiles = {};
-    //                var start = j * 100;
-    //                if (last !== 0) {
-    //                    var end = start + last;
-    //                }
-    //                else {
-    //                    var end = start + 100;
-    //                }
-    //                for (var i = start; i < end; i++) {
-    //                    newfiles[i] = files[i];
-    //                }
-    //                newfiles.start = start;
-    //                newfiles.end = end;
-    //                return newfiles;
-    //            }
+
     function whenLoaded(text) {
         if (newFile === 0) {
             console.time('#test');
@@ -215,17 +233,18 @@ Choose file:
                 allAdapterContent.filenames.push(name);
             }
 //                    allKmerContent = allKmerContent.concat(modules["KmerContent"]);
+
             //Populate file list
             var newOption = document.createElement("option");
             newOption.value = fileNames[fileCounter];
             newOption.innerHTML = fileNames[fileCounter];
-            fileNameArray.add(newOption);
+            fileNameArray.add(newOption)
             fileCounter = fileCounter + 1;
             if (newFile === qcFile.files.length) {
                 newFile = 0;
                 var merged = [].concat.apply([], PWF).sort();
 
-                console.log(allSequenceDuplicationLevels);
+// Working on this prior to restarting                console.log(allSequenceDuplicationLevels);
 
                 fileSelect(fileNameArray.value);
                 aggregateStatus(merged);
@@ -248,6 +267,7 @@ Choose file:
 //                        console.log(allOverrepresentedSequences);
 //                        console.log(allAdapterContent);
 //                        console.log(allKmerContent);
+
                 console.timeEnd('#test');
             }
         }
@@ -1300,6 +1320,7 @@ Choose file:
         for(var i = 0; i < uniqueData.length; i++){
             names[uniqueData[i]] = new Array();
         }
+
         for (var i = 0; i < data.length; i++) {
             counts[data[i]] = 1 + (counts[data[i]] || 0);
             names[data[i]].push(filenames[i]);
@@ -1333,6 +1354,7 @@ Choose file:
                 .data(barData)
                 .enter()
                 .append("rect")
+                .attr("class", "aggregateRects")
                 .attr("y", function (d) {
                     return yScale(d.y);
                 })
@@ -1346,9 +1368,40 @@ Choose file:
                 .attr("fill", function (d) {
                     return d.color;
                 })
+                .attr("opacity", 1)
                 .on("click",function(d){
-                    console.log(d.files);
+
+                    // One issue with this is that I am selecting by value (which is files making up bars)
+                    // And many of the bars have the same values...
+                    // Thus, if they remove something from the selected list, and add another group from a different bar
+                    // With the same value, then it will re-add all of the options with that value
+
+                    var option_data = $("#selected-groups").select2('data');
+                    var options = [];
+                    for(i=0; i < option_data.length; i++){
+                        options.push(option_data[i].text);
+                    }
+
+
+                    var newGroupOption = document.createElement("option");
+                    newGroupOption.value = d.files;
+                    newGroupOption.innerHTML = d.x;
+                    if(options.indexOf(d.x) == -1) {
+                        selectedGroups.add(newGroupOption);
+                    }
+
+                    var selected = $("#selected-groups").val();
+
+                    if(selected == null){
+                        $("#selected-groups").val([d.files]).change();
+                    }
+                    else{
+                        var currently_selected = $("#selected-groups").val();
+                        currently_selected.push(d.files);
+                        $("#selected-groups").val(currently_selected).change();
+                    }
                 });
+
         count.selectAll("text")
                 .data(barData)
                 .enter()
@@ -1391,6 +1444,7 @@ Choose file:
                 .attr("transform", "translate(40, 0)")
                 .call(yAxis);
     }
+
     function qcCreateDictionary(text) {
         var qcData = text;
         //        qcData = qcData.split("\n");
@@ -1432,6 +1486,7 @@ Choose file:
         }
         return [modules, allStatus];
     }
+
     var customSort = function (a, b) {
         return (Number(a.match(/(\d+)/g)[0]) - Number((b.match(/(\d+)/g)[0])));
     };
