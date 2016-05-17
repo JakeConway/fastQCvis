@@ -3,6 +3,26 @@
  */
 
 function groupsFunctions(){
-    // Where group functions will be placed
-    console.log($("#selected-groups").val());
+
+    var groups = $("#selected-groups").val();
+    var IDs = [];
+    var group_data = {};
+
+    for (var i = 0; i < groups.length; i++) {
+        IDs.push($("#selected-groups").select2('data')[i]['text'])
+        group_data[IDs[i]] = groups[i];
+    }
+
+
+    for (var i = 0; i < IDs.length; i++){
+        if (groupData[IDs[i]] == undefined){
+            var groupfiles = group_data[IDs[i]].split(",");
+            generateGroupData(groupfiles);
+        }
+    }
+
+}
+
+function generateGroupData(files){
+    //Functions to break up files for group visualizations
 }
