@@ -168,7 +168,7 @@ function perBaseSequenceQuality(baseQual) {
         .attr("stroke-opacity", 1)
         .attr("fill", "none");
 
-    var errorLineLow = vis.selectAll("crap.errorLow")
+    var errorLineLow = vis.selectAll("line.errorLow")
         .data(parameters)
         .enter()
         .append("line")
