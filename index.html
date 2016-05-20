@@ -29,6 +29,13 @@
             stroke: #000;
             shape-rendering: crispEdges;
         }
+        .divs {
+            float: left;
+            width: 33.3%;
+        }
+        .mainDiv {
+            width: 2500px;
+        }
         .aggregateRects {
             opacity: 1;
         }
@@ -73,8 +80,8 @@ Groups:
 <select id="selected-groups" class="selected-groups" name="selected-groups"
         multiple="multiple" style="width: 300px;" onchange="groupsFunctions()"></select>
 <hr />
-
-<div id="left" style="width: 700px;">
+<div id="main" class="mainDiv">
+<div id="left" class="divs">
     <h2 id="one"></h2>
     <div id="container1"> </div>
     <h2 id="two"></h2>
@@ -100,7 +107,7 @@ Groups:
     <h2 id="twelve"></h2>
     <div id="container12"></div>
 </div>
-<div id="right" style = "width: 700px;">
+<div id="right" class="divs">
     <h2 id="thirteen"></h2>
     <div id="container13"></div>
     <h2 id="fourteen"></h2>
@@ -123,11 +130,12 @@ Groups:
     <div id="container22"></div>
 
 </div>
-<div id="groups" style="width: 700px">
+<div id="groups" class="divs">
     <h2 id="groups1"></h2>
     <div id="groupscontainer1"></div>
     <h2 id="groups2"></h2>
     <div id="groupscontainer2"></div>
+    <h2 id="groupscontainer3-tabs"></h2>
     <div id="groups3tabs">
         <ul>
             <li><a href="#tab1" style="font-size: 0.5em;">Adapter Content</a></li>
@@ -159,6 +167,7 @@ Groups:
         <div id="tab13"></div>
 
     </div>
+</div>
 </div>
 <script>
     $("#groups").hide();

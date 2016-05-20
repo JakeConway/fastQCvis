@@ -414,6 +414,11 @@ function GroupBoxPlot(groupData, IDs, contentname, divID, headerID, modTitle){
 }
 
 function GroupModuleStatusBarPlot(barData, IDs){
+
+    var title = document.getElementById("groupscontainer3-tabs");
+    title.innerHTML = "";
+    title.innerHTML = "Module Statuses by Group";
+
     var barData = groupModuleStatusCounts(barData, IDs);
 
     var plotData = [];
@@ -494,7 +499,7 @@ function GroupModuleStatusBarPlot(barData, IDs){
             .attr("height", function(d){
                 return (yScale(0) - yScale(d.pass_y));
             })
-            .attr("fill", "green");
+            .attr("fill", "#1fee2d");
 
         var warned = vis.selectAll("warnRects")
             .data(current_mod_data)
@@ -510,7 +515,7 @@ function GroupModuleStatusBarPlot(barData, IDs){
             .attr("height", function(d){
                 return (yScale(d.pass_y) - yScale(d.warn_y));
             })
-            .attr("fill", "orange");
+            .attr("fill", "#ffc40c");
 
         var failed = vis.selectAll("failedRects")
             .data(current_mod_data)
@@ -526,7 +531,7 @@ function GroupModuleStatusBarPlot(barData, IDs){
             .attr("height", function(d){
                 return (yScale(d.warn_y) - yScale(d.fail_y));
             })
-            .attr("fill", "red");
+            .attr("fill", "#ff0505");
 
         var unknown = vis.selectAll("unknownRects")
             .data(current_mod_data)
@@ -542,7 +547,7 @@ function GroupModuleStatusBarPlot(barData, IDs){
             .attr("height", function(d){
                 return (yScale(d.fail_y) - yScale(d.unknown_y));
             })
-            .attr("fill", "gray");
+            .attr("fill", "#d3d3d3");
 
         var border = vis.selectAll("borders")
             .data(current_mod_data)
