@@ -262,6 +262,8 @@ function GroupBoxPlot(groupData, IDs, contentname, divID, headerID, modTitle){
         .attr("width", 650)
         .attr("height", 550);
 
+    var textVis = vis.append("g");
+
     var boxes = vis.selectAll("rects")
         .data(boxplotData)
         .enter()
@@ -400,6 +402,137 @@ function GroupBoxPlot(groupData, IDs, contentname, divID, headerID, modTitle){
         .attr("stroke-width", 1.5)
         .attr("stroke-opacity", 1)
         .attr("fill", "none");
+
+    vis.append("text")
+        .attr("x", 520)
+        .attr("y", 50)
+        .attr("font-family", "sans-serif")
+        .style("text-anchor", "end")
+        .attr("font-size", "11px")
+        .attr("fill", "black")
+        .text("max: ");
+
+    vis.append("text")
+        .attr("x", 520)
+        .attr("y", 70)
+        .attr("font-family", "sans-serif")
+        .style("text-anchor", "end")
+        .attr("font-size", "11px")
+        .attr("fill", "black")
+        .text("Q3: ");
+
+    vis.append("text")
+        .attr("x", 520)
+        .attr("y", 90)
+        .attr("font-family", "sans-serif")
+        .style("text-anchor", "end")
+        .attr("font-size", "11px")
+        .attr("fill", "red")
+        .text("median: ");
+
+    vis.append("text")
+        .attr("x", 520)
+        .attr("y", 110)
+        .attr("font-family", "sans-serif")
+        .style("text-anchor", "end")
+        .attr("font-size", "11px")
+        .attr("fill", "blue")
+        .text("mean: ");
+
+    vis.append("text")
+        .attr("x", 520)
+        .attr("y", 130)
+        .attr("font-family", "sans-serif")
+        .style("text-anchor", "end")
+        .attr("font-size", "11px")
+        .attr("fill", "black")
+        .text("Q1: ");
+
+    vis.append("text")
+        .attr("x", 520)
+        .attr("y", 150)
+        .attr("font-family", "sans-serif")
+        .style("text-anchor", "end")
+        .attr("font-size", "11px")
+        .attr("fill", "black")
+        .text("min: ");
+
+    var hoverBar = vis.selectAll("hoverBars")
+        .data(boxplotData)
+        .enter()
+        .append("rect")
+        .attr("x", function(d){
+            return (xScale(d.x) - (BoxWidth/2));
+        })
+        .attr("y", function(d){
+            return yScale(d.max);
+        })
+        .attr("height", function(d){
+            return (yScale(d.min) - yScale(d.max));
+        })
+        .attr("width", BoxWidth)
+        .attr("fill", "black")
+        .attr("stroke", "black")
+        .attr("stroke-opacity", 0)
+        .attr("opacity", 0)
+        .on("mouseover", function(d){
+            textVis.append("text")
+                .attr("x", 540)
+                .attr("y", 50)
+                .attr("font-family", "sans-serif")
+                .style("text-anchor", "start")
+                .attr("font-size", "11px")
+                .attr("fill", "black")
+                .text(d.max);
+
+            textVis.append("text")
+                .attr("x", 540)
+                .attr("y", 70)
+                .attr("font-family", "sans-serif")
+                .style("text-anchor", "start")
+                .attr("font-size", "11px")
+                .attr("fill", "black")
+                .text(d.Q3);
+
+            textVis.append("text")
+                .attr("x", 540)
+                .attr("y", 90)
+                .attr("font-family", "sans-serif")
+                .style("text-anchor", "start")
+                .attr("font-size", "11px")
+                .attr("fill", "red")
+                .text(d.median);
+
+            textVis.append("text")
+                .attr("x", 540)
+                .attr("y", 110)
+                .attr("font-family", "sans-serif")
+                .style("text-anchor", "start")
+                .attr("font-size", "11px")
+                .attr("fill", "blue")
+                .text(d.mean);
+
+            textVis.append("text")
+                .attr("x", 540)
+                .attr("y", 130)
+                .attr("font-family", "sans-serif")
+                .style("text-anchor", "start")
+                .attr("font-size", "11px")
+                .attr("fill", "black")
+                .text(d.Q1);
+
+            textVis.append("text")
+                .attr("x", 540)
+                .attr("y", 150)
+                .attr("font-family", "sans-serif")
+                .style("text-anchor", "start")
+                .attr("font-size", "11px")
+                .attr("fill", "black")
+                .text(d.min);
+        })
+        .on("mouseout", function(){
+            textVis.selectAll("*").remove();
+        });
 
     vis.append("svg:g")
         .attr("class", "axis")

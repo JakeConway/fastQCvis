@@ -1138,7 +1138,7 @@ Groups:
                     var newGroupOption = document.createElement("option");
                     newGroupOption.value = d.files;
                     newGroupOption.innerHTML = "%GC: " + d.x;
-                    if(options.indexOf(d.x) == -1) {
+                    if(options.indexOf(newGroupOption.innerHTML) == -1) {
                         selectedGroups.add(newGroupOption);
                     }
 
@@ -1416,6 +1416,7 @@ Groups:
                 .attr("transform", "translate(90, 0)")
                 .call(yAxis);
     }
+
     function stringData(data, filenames, headerID, moduleName, divID, title,
                         xLabel, rotate, xPos, svgHeight) {
         document.getElementById(headerID).innerHTML = moduleName;
